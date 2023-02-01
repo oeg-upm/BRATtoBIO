@@ -1,44 +1,95 @@
-from os import listdir
-from os.path import isfile, join
-from datasets import load_dataset
-import argparse
+"""
+Utility functions to preprocess a dataset such us write a dataframe into a csv, read a text or make directories.
+It also contains a class with colors to print strings
+"""
+import pandas
 
-# Globals
-PATH = "C:/Users/carlo/Documents/Máster/Trabajo-Fin-De-Master/Data/cantemist/"
-TRAIN = "train-set/cantemist-ner-processed/"
-DEV1 = "dev-set1/cantemist-ner-processed/"
-DEV2 = "dev-set2/cantemist-ner-processed/"
-TEST = "test-set/cantemist-ner-processed/"
+from os import mkdir
+from os.path import exists
 
 
-def get_files_path(path):
-    return [path + f for f in listdir(path) if isfile(join(path, f))]
+class Bcolors:
+    """
+    A class used to color the printed strings
+
+    ...
+
+    Attributes
+    ----------
+    HEADER : str
+    OKBLUE : str
+    OKCYAN : str
+    OKGREEN : str
+    WARNING : str
+    FAIL : str
+    ENDC : str
+        ends the colored string
+    BOLD : str
+    UNDERLINE : str
+    """
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 
-def get_dataset(path, train_path, dev_path, test_path):
-    files_train = get_files_path(path + train_path)
-    files_dev = get_files_path(path + dev_path)
-    files_test = get_files_path(path + test_path)
+def write_csv(path_file, df):
+    """
+    Write a pandas dataframe into a csv file
 
-    datasets = load_dataset('csv', data_files={'train': files_train, 'validation': files_dev, 'test': files_test})
+    Parameters
+    ----------
+    path_file : srt
+        path to save dir
+    df : pandas.DataFrame
+        Dataframe to save
+    """
 
-    return datasets
+    df.to_csv(path_file, index=False, header=True, encoding="utf-8")
 
 
-if __name__ == "__main__":
-    # path_ = "C:/Users/carlo/Documents/Máster/Trabajo-Fin-De-Master/Data/cantemist/NER"
+def read_txt(file):
+    """
+    Return the content of a txt file in a string
 
-    parser = argparse.ArgumentParser(description='Preprocess data in brat format and save it in csv files. The files must be stored in a directory with the name "raw_data".')
-    parser.add_argument('path', help='Base path to data directory.')
-    parser.add_argument('-tr', '--train_dir', default="train-set/", help='Directory where train data is stored. Default is "train-set/".')
-    parser.add_argument('-de', '--dev_dir', default="dev-set/", help='Directory where evaluation data is stored. Default is "dev-set/".')
-    parser.add_argument('-te', '--test_dir', default="test-set/", help='Directory where test data is stored. Default is "test-dev/".')
+    Parameters
+    ----------
+    file : str
+        path to the txt
 
-    args = parser.parse_args()
+    Returns
+    ------
+    str
+        string with the text
 
-    path_ = args.path + '/'
-    save_df_train = args.train_dir + "processed/"
-    save_df_dev = args.dev_dir + "processed/"
-    save_df_test = args.test_dir + "processed/"
+    """
+    with open(file, 'r', encoding="utf8") as file:
+        text = file.read()
 
-    print(get_dataset(path_, save_df_train, save_df_dev, save_df_test))
+    return text
+
+
+def mkdir_processed(paths):
+    """
+    Make the directories to save processed data
+
+    Parameters
+    ----------
+    paths : list[str]
+         path to the base directory
+    """
+    for path in paths:
+        if not exists(path):
+            try:
+                mkdir(path)
+                print(f"Successfully mkdir {path}")
+            except FileNotFoundError:
+                print(f"{Bcolors.FAIL}No such path: {path}{Bcolors.ENDC}")
+        else:
+            print(f"{Bcolors.WARNING}Directory {'/' + path.split('/')[-2] + '/' +  path.split('/')[-1]} "
+                  f"already exists{Bcolors.ENDC}")
