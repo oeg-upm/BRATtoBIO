@@ -221,6 +221,7 @@ def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labe
 
     pool = multiprocessing.Pool(numthreads)
 
+    print(f"Processing dataset...")
     for path_txt, path_tsv, path_save in zip(txt_path_types, tsv_path_types, save_path_df):
         files_tsv = [f for f in listdir(path_tsv) if isfile(join(path_tsv, f))]
         df_tsv = pd.DataFrame()
@@ -228,12 +229,14 @@ def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labe
             df_tsv = pd.concat([df_tsv, read_tsv(path_tsv + file)]).reset_index(drop=True)
 
         txt_files = df_tsv['filename'].unique()
+        print(f"{path_txt.split('/')[-3]} PONER PROGRESS BAR O ALGO DE ESO")
         for txt in txt_files:
             df_aux = df_tsv.loc[df_tsv['filename'] == txt].reset_index(drop=True)
             pool.apply_async(process_all_files, (path_txt, df_aux, path_save, ann_labels,))
 
     pool.close()
     pool.join()
+    print(f"Processed successfully...")
 
 
 def process_all_files(path_txt, df_tsv, path_save, ann_labels):
@@ -259,12 +262,8 @@ def process_all_files(path_txt, df_tsv, path_save, ann_labels):
     ann_labels : list[str]
         annotation labels for process_text()
     """
-
-    try:
-        id_thread = multiprocessing.current_process().name
-        print(f"Starting thread {id_thread}...")
-    except:
-        pass
+    # id_thread = multiprocessing.current_process().name
+    # print(f"Starting thread {id_thread}...")
 
     file = df_tsv['filename'][0] + '.txt'
     text = utils.read_txt(path_txt + file)
@@ -274,10 +273,7 @@ def process_all_files(path_txt, df_tsv, path_save, ann_labels):
     file = file[:-4] if file[-4:] == ".txt" else file
     utils.write_csv(path_save + file + '.csv', df)
 
-    try:
-        print(f"Thread {id_thread} finished.")
-    except:
-        pass
+    # print(f"Thread {id_thread} finished.")
 
 
 if __name__ == "__main__":
