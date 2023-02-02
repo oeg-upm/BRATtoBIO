@@ -74,22 +74,26 @@ def read_txt(file):
     return text
 
 
-def mkdir_processed(paths):
+def mkdirs(paths):
     """
-    Make the directories to save processed data
+    Make directories
 
     Parameters
     ----------
     paths : list[str]
          path to the base directory
     """
+
+    state = 0
     for path in paths:
         if not exists(path):
             try:
                 mkdir(path)
                 print(f"Successfully mkdir {path}")
-            except FileNotFoundError:
-                print(f"{Bcolors.FAIL}No such path: {path}{Bcolors.ENDC}")
+            except FileNotFoundError as e:
+                print(f"{Bcolors.FAIL}{e}{Bcolors.ENDC}")
+                state = 1
         else:
-            print(f"{Bcolors.WARNING}Directory {'/' + path.split('/')[-2] + '/' +  path.split('/')[-1]} "
-                  f"already exists{Bcolors.ENDC}")
+            print(f"{Bcolors.WARNING}Directory {path} already exists{Bcolors.ENDC}")
+
+    return state

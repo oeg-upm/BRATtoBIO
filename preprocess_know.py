@@ -21,28 +21,6 @@ from random import randint
 from os.path import isfile, join
 
 
-def test(txt_path_types, tsv_path_types, save_path_df, ann_labels, path_knowledge):
-    db_knowledge = pd.read_csv(path_knowledge, sep="\t")
-    db_knowledge.pop('Unnamed: 0')
-
-    for path_txt, path_tsv, path_save in zip(txt_path_types, tsv_path_types, save_path_df):
-        files_tsv = [f for f in listdir(path_tsv) if isfile(join(path_tsv, f))]
-        df_tsv = pd.DataFrame()
-        for file in files_tsv:
-            df_tsv = pd.concat([df_tsv, read_tsv(path_tsv + file)]).reset_index(drop=True)
-
-        txt_files = df_tsv['filename'].unique()
-        for txt in txt_files:
-            df_aux = df_tsv.loc[df_tsv['filename'] == txt].reset_index(drop=True)
-
-            file = df_aux['filename'][0] + '.txt'
-            text = utils.read_txt(path_txt + file)
-
-            df = process_text_knowledge(text, df_aux, ann_labels, db_knowledge)
-
-            pass
-
-
 def read_tsv(file):
     """
     Return a pandas.DataFrame with the annotation of the .tsv file.
@@ -91,12 +69,11 @@ def read_tsv(file):
     return df
 
 
-def process_text_knowledge(text, df_ann, ann_labels, db_knowledge=None):
+def process_text(text, df_ann, ann_labels):
     """
     Process the input text to generate a dataset for the NER task.
     The text is divided into sentences. Each word has a label attached following the BIO annotation format.
     Finally, return a pandas.DataFrame with the dataset.
-    Also, a knowledge database can be provided to generate a more complete dataset.
 
     Example of dataset:
     |tokens
@@ -106,17 +83,12 @@ def process_text_knowledge(text, df_ann, ann_labels, db_knowledge=None):
     |labels
     |------------------------------------------------------------------------------------------------
     |['O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-MORFOLOGIA_NEOPLASIA', 'O']
-    |
-    |knowledge
-    |------------------------------------------------------------------------------------------------
-    |['Un pacienta es un humano', 'La hepatitis es un virus', ...]
-
 
     Parameters
     ----------
     text : str
         text to process
-    ann : pandas.DataFrame
+    df_ann : pandas.DataFrame
         pandas.DataFrame with info about the spans (span, offset, word)
     ann_labels : list[str]
        list of lenght four with the labels of the ann file. Format must be:
@@ -125,8 +97,6 @@ def process_text_knowledge(text, df_ann, ann_labels, db_knowledge=None):
             ann_labels[2] --> label for the column 'label' (E.g: 'label', ...)
             ann_labels[3] --> labelled word (E.g: 'word', 'span', ...)
             example       --> ['off0', 'off1', 'label', 'span']
-    db_knowledge : pandas.DataFrame
-        Database with the knowledge used to enrich the dataset
 
     Returns
     -------
@@ -134,8 +104,7 @@ def process_text_knowledge(text, df_ann, ann_labels, db_knowledge=None):
         pandas.dataFrame with the text processed and labelled
     """
 
-    add_know = type(db_knowledge) == pd.DataFrame
-    columns = ['tokens', 'labels', 'knowledge'] if add_know else ['tokens', 'labels']
+    columns = ['tokens', 'labels']
     df = pd.DataFrame(columns=columns)
     ann = df_ann.sort_values(by=[ann_labels[0]]).reset_index(drop=True)
     offset = 0
@@ -189,7 +158,6 @@ def process_text_knowledge(text, df_ann, ann_labels, db_knowledge=None):
     sentences = seg.segment(text)
     all_tokens = []
     all_labels = []
-    all_knowledge = []
 
     for sentence in sentences:
         new_sentence = sentence.split()
@@ -223,27 +191,8 @@ def process_text_knowledge(text, df_ann, ann_labels, db_knowledge=None):
         all_tokens.append(tokens)
         all_labels.append(labels)
 
-        # Add knowledge if provided
-        if add_know:
-            sentence_knowledge = []
-            for token in tokens:
-                if token.lower() in list(db_knowledge['span']):
-                    knowledge = list(db_knowledge.loc[db_knowledge['span'] == token.lower()]['knowledge'].apply(ast.literal_eval))[0]
-                    knowledge = list(map(lambda x: x.replace('\n', ''), knowledge))
-                    sentence_knowledge += knowledge
-            while len(sentence_knowledge) < 10:
-                index = randint(0, len(db_knowledge) - 1)
-                knowledge = list(db_knowledge.iloc[[index]]['knowledge'].apply(ast.literal_eval))[0]
-                knowledge = list(map(lambda x: x.replace('\n', ''), knowledge))
-                sentence_knowledge += knowledge
-            if len(sentence_knowledge) > 10:
-                sentence_knowledge = sentence_knowledge[:10]
-            all_knowledge.append(sentence_knowledge)
-
     df['tokens'] = all_tokens
     df['labels'] = all_labels
-    if add_know:
-        df['knowledge'] = all_knowledge
 
     for i in range(df.shape[0]):
         if len(df['tokens'][0]) != len(df['labels'][0]):
@@ -252,7 +201,7 @@ def process_text_knowledge(text, df_ann, ann_labels, db_knowledge=None):
     return df
 
 
-def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labels, numthreads=8, path_knowledge=None):
+def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labels, numthreads=8):
     """
     Manage a thread pool to parallel execution of process_all_files().
 
@@ -266,22 +215,11 @@ def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labe
         path to train, dev and test save directories
     ann_labels : list[str]
         annotation labels for process_text()
-    path_knowledge : str, optional
-        ...
     numthreads : int, optional
         number of threads to launch. Deafult = 8
     """
 
     pool = multiprocessing.Pool(numthreads)
-
-    if path_knowledge is not None:
-        db_knowledge = pd.read_csv(path_knowledge, sep="\t")
-        try:
-            db_knowledge.pop('Unnamed: 0')
-        except KeyError:
-            pass
-    else:
-        db_knowledge = None
 
     for path_txt, path_tsv, path_save in zip(txt_path_types, tsv_path_types, save_path_df):
         files_tsv = [f for f in listdir(path_tsv) if isfile(join(path_tsv, f))]
@@ -292,22 +230,13 @@ def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labe
         txt_files = df_tsv['filename'].unique()
         for txt in txt_files:
             df_aux = df_tsv.loc[df_tsv['filename'] == txt].reset_index(drop=True)
-            process_all_files(path_txt,
-                                                 df_aux,
-                                                 path_save,
-                                                 ann_labels,
-                                                 db_knowledge)
-            # pool.apply_async(process_all_files, (path_txt,
-            #                                      df_aux,
-            #                                      path_save,
-            #                                      ann_labels,
-            #                                      db_knowledge))
+            pool.apply_async(process_all_files, (path_txt, df_aux, path_save, ann_labels,))
 
     pool.close()
     pool.join()
 
 
-def process_all_files(path_txt, df_tsv, path_save, ann_labels, db_knowledge=None):
+def process_all_files(path_txt, df_tsv, path_save, ann_labels):
     """
     Main function to process all files.
 
@@ -329,8 +258,6 @@ def process_all_files(path_txt, df_tsv, path_save, ann_labels, db_knowledge=None
         path to the directory to save the processed data
     ann_labels : list[str]
         annotation labels for process_text()
-    db_knowledge : pandas.DataFrame, optional
-        ...
     """
 
     try:
@@ -342,7 +269,7 @@ def process_all_files(path_txt, df_tsv, path_save, ann_labels, db_knowledge=None
     file = df_tsv['filename'][0] + '.txt'
     text = utils.read_txt(path_txt + file)
 
-    df = process_text_knowledge(text, df_tsv, ann_labels, db_knowledge)
+    df = process_text(text, df_tsv, ann_labels)
 
     file = file[:-4] if file[-4:] == ".txt" else file
     utils.write_csv(path_save + file + '.csv', df)
@@ -354,16 +281,6 @@ def process_all_files(path_txt, df_tsv, path_save, ann_labels, db_knowledge=None
 
 
 if __name__ == "__main__":
-    process_data_parallel(['/home/carlos/datasets/training/text-files/', '/home/carlos/datasets/valid/text-files/'],
-                          ['/home/carlos/datasets/training/subtask1-NER/', '/home/carlos/datasets/valid/subtask1-NER/'],
-                          ['/home/carlos/datasets/training/processed_data/', '/home/carlos/datasets/valid/processed_data/'],
-                          ['off0', 'off1', 'label', 'span'],
-                          path_knowledge='/home/carlos/datasets/knowledge_triplets.json',
-                          numthreads=1,
-                          )
-
-    exit()
-
     parser = argparse.ArgumentParser(
         description='Preprocess data in brat format and save it in csv files. The files must be stored in a directory '
                     'with the name "raw_data".')
@@ -388,10 +305,6 @@ if __name__ == "__main__":
     parser.add_argument('-txt', '--txt_name', default="text-files",
                         help='Directory from path where text files are stored in the train, dev and test directories. '
                              'Default is "text-files".')
-    parser.add_argument('-kn', '--know_dir',
-                        help='File path where knowledge data is stored.')
-    parser.add_argument('-w', '--add_know', default="False",
-                        help='True when knowledge is used. Default is "False".')
     parser.add_argument('-n', '--num_threads', type=int, default=8,
                         help='Number of threads generated to process the data. Default is 8')
 
@@ -405,12 +318,6 @@ if __name__ == "__main__":
     path_tsv_types_ = []
     save_path_df_ = []
 
-    add_know_ = args.add_know
-    if add_know_:
-        knowledge_dir = args.know_dir
-    else:
-        knowledge_dir = None
-
     for dir_ in dirs:
         path_txt_types_.append(f"{path_}{dir_}/{args.txt_name}/")
         path_tsv_types_.append(f"{path_}{dir_}/{args.ann_name}/")
@@ -422,13 +329,10 @@ if __name__ == "__main__":
     if utils.mkdirs(save_path_df_):
         exit(1)
 
-    # test(path_txt_types_, path_tsv_types_, save_path_df_, ann_labels_, knowledge_dir)
-
     process_data_parallel(path_txt_types_,
                           path_tsv_types_,
                           save_path_df_,
                           ann_labels_,
-                          path_knowledge=knowledge_dir,
                           numthreads=num_threads,
                           )
 
