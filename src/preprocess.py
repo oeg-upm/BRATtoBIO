@@ -12,6 +12,8 @@ Each set directory must contain two main directories:
             fl_example  T1	  HUMAN   112     118	  hombre
             fl_example  T2	  HUMAN   1025    1033	  paciente
 
+Example of dataset organization:
+
 /path/to/dataset
 └── cantemist
     ├── train-set
@@ -303,9 +305,6 @@ def init_pool_processes(cont_):
     cont = cont_
 
 
-import time
-
-
 def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labels, numthreads=os.cpu_count()):
     """
     Manage a thread pool to parallel execution of process_file().
@@ -368,10 +367,14 @@ def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labe
             for r in res:
                 r.wait()
 
+            if cont_.value != prev:
+                diff = cont_.value - prev
+                pbar.update(diff)
+
             pbar.close()
 
     pool.join()
-    print(f"{utils.Bcolors.OKGREEN}Processed successfully{utils.Bcolors.ENDC}")
+    print(f"{utils.Bcolors.OKGREEN}Dataset processed successfully{utils.Bcolors.ENDC}")
 
 
 if __name__ == "__main__":
