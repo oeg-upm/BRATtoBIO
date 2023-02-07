@@ -57,7 +57,7 @@ from os import listdir
 from os.path import isfile, join
 
 
-def read_tsv(file):
+def read_tsv(file, ann_labels, header):
     """
     Return a pandas.DataFrame with the annotation of the .tsv file.
 
@@ -85,22 +85,26 @@ def read_tsv(file):
         pandas.DataFrame with the colums: [label, start, end, word]
     """
 
-    relevant_columns = ["filename", "label", "off0", "off1", "span"]
+    # relevant_columns = ["filename", "label", "off0", "off1", "span"]
 
     # Read txt sep by tabs
-    df = pd.read_csv(file, sep="\t")
+    df = pd.read_csv(file, sep="\t", names=header, header=0)
 
     # Drop not relevant columns
     for col in df.columns:
-        if col not in relevant_columns:
+        if col not in ann_labels:
             df.drop(col, axis=1, inplace=True)
 
     # Convert offsets to int
-    df['off0'] = pd.to_numeric(df['off0'], errors="coerce")
-    df['off1'] = pd.to_numeric(df['off1'], errors="coerce")
+    # df['off0'] = pd.to_numeric(df['off0'], errors="coerce")
+    # df['off1'] = pd.to_numeric(df['off1'], errors="coerce")
+    # Convert offsets to int
+    df[ann_labels[2]] = pd.to_numeric(df[ann_labels[2]], errors="coerce")
+    df[ann_labels[3]] = pd.to_numeric(df[ann_labels[3]], errors="coerce")
 
     # Sort by off0
-    df = df.sort_values(by=['filename'])
+    # df = df.sort_values(by=['filename'])
+    df = df.sort_values(by=[header[0]])
 
     return df
 
@@ -151,10 +155,10 @@ def process_text(text, df_ann, ann_labels):
 
     # Goes throw all the annotated word in the ann dataframe
     for index, row in ann.iterrows():
-        off1 = row[ann_labels[0]]
-        off2 = row[ann_labels[1]]
-        label = row[ann_labels[2]]
-        span = row[ann_labels[3]]
+        label = row[ann_labels[1]]
+        off1 = row[ann_labels[2]]
+        off2 = row[ann_labels[3]]
+        span = row[ann_labels[4]]
 
         # Check if the word is in the correct offset
         if text[off1 + offset:off2 + offset] == span:
@@ -268,7 +272,8 @@ def process_file(path_txt, df_tsv, path_save, ann_labels, txt_tasks):
     # print(f"Id thread: {thread_id}")
 
     for txt in txt_tasks:
-        df_aux = df_tsv.loc[df_tsv['filename'] == txt].reset_index(drop=True)
+        # df_aux = df_tsv.loc[df_tsv['filename'] == txt].reset_index(drop=True)
+        df_aux = df_tsv.loc[df_tsv[ann_labels[0]] == txt].reset_index(drop=True)
 
         file = f"{txt}.txt"
         text = utils.read_txt(path_txt + file)
@@ -305,7 +310,7 @@ def init_pool_processes(cont_):
     cont = cont_
 
 
-def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labels, numthreads=os.cpu_count()):
+def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labels, header, numthreads=os.cpu_count()):
     """
     Manage a thread pool to parallel execution of process_file().
 
@@ -334,8 +339,9 @@ def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labe
             files_tsv = [f for f in listdir(path_tsv) if isfile(join(path_tsv, f))]
             df_tsv = pd.DataFrame()
             for file in files_tsv:
-                df_tsv = pd.concat([df_tsv, read_tsv(path_tsv + file)]).reset_index(drop=True)
-            txt_files = df_tsv['filename'].unique()
+                df_tsv = pd.concat([df_tsv, read_tsv(path_tsv + file, ann_labels, header)]).reset_index(drop=True)
+            # txt_files = df_tsv['filename'].unique()
+            txt_files = df_tsv[header[0]].unique()
             tasks = distribute_tasks(len(txt_files))
             res = []
 
@@ -395,38 +401,64 @@ if __name__ == "__main__":
     # exit(0)
 
     parser = argparse.ArgumentParser(
-        description='Preprocess data in brat format and save it in csv files. The files must be stored in a directory '
-                    'with the name "raw_data".')
+        description='Preprocess data in BRAT format and save it in csv files on BIO format. '
+                    'The positional argument is the path to the dataset directory and then ONLY the name of the'
+                    'set directories (train, dev and test). At least one must be provided.'
+                    'The annotation must be in a SINGLE file with a header. '
+                    'This header of the annotation file can be passed as argument if its different to the default '
+                    'value. Also, it is mandatory to follow the order "filename, mark, start, end, label, span" and '
+                    'only the names can be modified.')
     parser.add_argument('path', help='Base path to data directory.')
-    parser.add_argument('-al', '--ann_labels',
-                        default="off0,off1,label,span",
-                        help="Names of the offset start, offset end, label and span columns. "
-                             "Input must be the names sep by a coma. E.g: -ann start,end,label,word. Default is "
-                             "'off0,off1,label,span'.")
-    parser.add_argument('-tr', '--train_dir', default="train-set",
-                        help='Directory from path where train data is stored. Default is "train-set".')
-    parser.add_argument('-de', '--dev_dir', default="dev-set",
-                        help='Directory from path where evaluation data is stored. Default is "dev-set".')
-    parser.add_argument('-te', '--test_dir', default="test-set",
-                        help='Directory from path where test data is stored. Default is "test-dev".')
+    parser.add_argument('-tr', '--train_dir',
+                        help='Directory from path where train data is stored.')
+    parser.add_argument('-de', '--dev_dir',
+                        help='Directory from path where evaluation data is stored.')
+    parser.add_argument('-te', '--test_dir',
+                        help='Directory from path where test data is stored.')
+    parser.add_argument('-an', '--ann_name',
+                        help='Directory from path where annotation files are stored in the train, dev and test '
+                             'directories.')
+    parser.add_argument('-hd', '--header',
+                        default="filename,mark,off0,off1,label,span",
+                        help="Header of the annotation file. The column name can differ from the default but the order "
+                             "must be the same. E.g, the file name must be the first column."
+                             "Default is filename,mark,label,off0,off1,span.")
+    # parser.add_argument('-ac', '--ann_cols',
+    #                     default="off0,off1,label,span",
+    #                     help="Names of the offset start, offset end, label and span columns."
+    #                          "Input must be the names sep by a coma and in the same order and name than in the header"
+    #                          ". E.g: -ann start,end,label,word. Default is 'off0,off1,label,span'.")
     parser.add_argument('-sn', '--save_name', default="processed_data",
                         help='Directory from path where processed data is stored in the train, dev and test'
                              'directories. Default is "processed_data"')
-    parser.add_argument('-an', '--ann_name', default="NER_ann",
-                        help='Directory from path where annotation files are stored in the train, dev and test '
-                             'directories. Default is "NER_ann".')
     parser.add_argument('-txt', '--txt_name', default="text-files",
                         help='Directory from path where text files are stored in the train, dev and test directories. '
                              'Default is "text-files".')
-    parser.add_argument('-n', '--num_threads', type=int, default=8,
+    parser.add_argument('-n', '--num_threads', type=int, default=os.cpu_count(),
                         help='Number of threads generated to process the data. Default is os.cpu_count()')
 
     args = parser.parse_args()
 
     path_ = args.path + '/' if args.path[-1] != '/' else args.path
 
-    dirs = [args.train_dir, args.dev_dir, args.test_dir]
-    # dirs = [args.train_dir, args.dev_dir]
+    dirs = []
+    if args.train_dir is not None:
+        dirs.append(args.train_dir)
+    if args.dev_dir is not None:
+        dirs.append(args.dev_dir)
+    if args.test_dir is not None:
+        dirs.append(args.test_dir)
+
+    if not dirs:
+        print(f"{utils.Bcolors.FAIL}No set provided in dataset{utils.Bcolors.ENDC}")
+        exit(0)
+    if args.txt_name is None:
+        print(f"{utils.Bcolors.FAIL}No text files provided{utils.Bcolors.ENDC}")
+        exit(0)
+    if args.ann_name is None:
+        print(f"{utils.Bcolors.FAIL}No ann files provided{utils.Bcolors.ENDC}")
+        exit(0)
+
     path_txt_types_ = []
     path_tsv_types_ = []
     save_path_df_ = []
@@ -437,7 +469,9 @@ if __name__ == "__main__":
         save_path_df_.append(f"{path_}{dir_}/{args.save_name}/")
 
     num_threads = args.num_threads
-    ann_labels_ = args.ann_labels.split(',')
+    header_ = args.header.split(',')
+    print(header_)
+    ann_labels_ = [header_[0], header_[2], header_[3], header_[4], header_[5]]
 
     if utils.mkdirs(save_path_df_):
         exit(1)
@@ -454,6 +488,7 @@ if __name__ == "__main__":
                           path_tsv_types_,
                           save_path_df_,
                           ann_labels_,
+                          header_,
                           numthreads=num_threads,
                           )
 
