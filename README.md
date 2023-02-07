@@ -14,31 +14,31 @@ Each set directory must contain two main directories:
 
 Example of dataset organization:
 
-/path/to/dataset
-└── cantemist
-    ├── train-set
-    │   ├── cantemist-ner
-    │   │   └── ner_annotations.tsv
-    │   └── text-files
-    │       ├── text-file_1.txt
-    │       ├── text-file_2.txt
-    │       └── ...
-    │
-    ├── dev-set
-    │   ├── cantemist-ner
-    │   │   └── ner_annotations.tsv
-    │   └── text-files
-    │       ├── text-file_1.txt
-    │       ├── text-file_2.txt
-    │       └── ...
-    │
-    └── test-set
-        ├── cantemist-ner
-        │   └── ner_annotations.tsv
-        └── text-files
-            ├── text-file_1.txt
-            ├── text-file_2.txt
-            └── ...
+    /path/to/dataset
+    └── cantemist
+        ├── train-set
+        │   ├── cantemist-ner
+        │   │   └── ner_annotations.tsv
+        │   └── text-files
+        │       ├── text-file_1.txt
+        │       ├── text-file_2.txt
+        │       └── ...
+        │
+        ├── dev-set
+        │   ├── cantemist-ner
+        │   │   └── ner_annotations.tsv
+        │   └── text-files
+        │       ├── text-file_1.txt
+        │       ├── text-file_2.txt
+        │       └── ...
+        │
+        └── test-set
+            ├── cantemist-ner
+            │   └── ner_annotations.tsv
+            └── text-files
+                ├── text-file_1.txt
+                ├── text-file_2.txt
+                └── ...
 
 Each set has a directory 'text-files' with the raw data and a directory 'cantemist-ner' where the annotated data is
 located
