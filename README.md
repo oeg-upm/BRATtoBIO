@@ -1,4 +1,4 @@
-# Preprocess
+# Preprocess BRAT to BIO
 This python file contains the necessary function to convert annotated data in Brat format to BIO format.
 
 The files need to be in a specific structure. The directory dataset must contain at least one set (train, dev, test).
@@ -42,3 +42,8 @@ Example of dataset organization:
 
 Each set has a directory 'text-files' with the raw data and a directory 'cantemist-ner' where the annotated data is
 located
+
+# Usage
+
+    python src/preprocess.py /home/carlos/datasets/cantemist -tr train-set -de dev-set -te test-set -txt text-files -an cantemist-ner -hd filename,mark,label,off0,off1,span -sn processed_data -n 8
+
