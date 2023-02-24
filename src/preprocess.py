@@ -146,7 +146,7 @@ def process_text(text, df_ann, ann_labels):
 
     columns = ['tokens', 'labels']
     df = pd.DataFrame(columns=columns)
-    ann = df_ann.sort_values(by=[ann_labels[0]]).reset_index(drop=True)
+    # ann = df_ann.sort_values(by=[ann_labels[0]]).reset_index(drop=True)
     offset = 0
     str_char = "$STR$"
     itr_char = "$ITR$"
@@ -154,7 +154,7 @@ def process_text(text, df_ann, ann_labels):
     seg = pysbd.Segmenter(language="es", clean=False)
 
     # Goes throw all the annotated word in the ann dataframe
-    for index, row in ann.iterrows():
+    for index, row in df_ann.iterrows():
         label = row[ann_labels[1]]
         off1 = row[ann_labels[2]]
         off2 = row[ann_labels[3]]
@@ -273,7 +273,8 @@ def process_file(path_txt, df_tsv, path_save, ann_labels, txt_tasks):
 
     for txt in txt_tasks:
         # df_aux = df_tsv.loc[df_tsv['filename'] == txt].reset_index(drop=True)
-        df_aux = df_tsv.loc[df_tsv[ann_labels[0]] == txt].reset_index(drop=True)
+        df_aux = df_tsv.loc[df_tsv[ann_labels[0]] == txt].sort_values(by=ann_labels[2]).reset_index(drop=True)
+        # df_aux = df_tsv.loc[df_tsv[ann_labels[0]] == txt].reset_index(drop=True)
 
         file = f"{txt}.txt"
         text = utils.read_txt(path_txt + file)
@@ -340,6 +341,9 @@ def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labe
             df_tsv = pd.DataFrame()
             for file in files_tsv:
                 df_tsv = pd.concat([df_tsv, read_tsv(path_tsv + file, ann_labels, header)]).reset_index(drop=True)
+
+            # ORDENAR DATAFRAME
+
             # txt_files = df_tsv['filename'].unique()
             txt_files = df_tsv[header[0]].unique()
             tasks = distribute_tasks(len(txt_files))
@@ -384,21 +388,22 @@ def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labe
 
 
 if __name__ == "__main__":
-    # process_data_parallel(
-    #     ['/home/carlos/datasets/cantemist/train-set/text-files/',
-    #      '/home/carlos/datasets/cantemist/dev-set1/text-files/',
-    #      '/home/carlos/datasets/cantemist/test-set/text-files/'],
-    #     ['/home/carlos/datasets/cantemist/train-set/cantemist-ner/',
-    #      '/home/carlos/datasets/cantemist/dev-set1/cantemist-ner/',
-    #      '/home/carlos/datasets/cantemist/test-set/cantemist-ner/'],
-    #     ['/home/carlos/datasets/cantemist/train-set/processed_data/',
-    #      '/home/carlos/datasets/cantemist/dev-set1/processed_data/',
-    #      '/home/carlos/datasets/cantemist/test-set/processed_data/'],
-    #     ['off0', 'off1', 'label', 'span'],
-    #     numthreads=1
-    # )
-    #
-    # exit(0)
+    debbug = False
+
+    if debbug:
+        header_ = "filename,mark,label,off0,off1,span".split(',')
+        ann_labels_ = [header_[0], header_[2], header_[3], header_[4], header_[5]]
+        df_tsv = read_tsv("/home/carlos/datasets/LivingNER_old/training/subtask1-NER/training_entities_subtask1.tsv",
+                          ann_labels_,
+                          header_).reset_index(drop=True)
+
+        process_file("/home/carlos/datasets/LivingNER_old/training/text-files/",
+                     df_tsv,
+                     "/home/carlos/datasets/LivingNER_old/training/PRUEBAS/",
+                     ann_labels_,
+                     ["caso_clinico_neurologia78"])
+
+        exit(0)
 
     parser = argparse.ArgumentParser(
         description='Preprocess data in BRAT format and save it in csv files on BIO format. '
@@ -470,7 +475,6 @@ if __name__ == "__main__":
 
     num_threads = args.num_threads
     header_ = args.header.split(',')
-    print(header_)
     ann_labels_ = [header_[0], header_[2], header_[3], header_[4], header_[5]]
 
     if utils.mkdirs(save_path_df_):
