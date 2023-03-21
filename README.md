@@ -4,7 +4,7 @@
 
 - [Usage](#usage)
 
-This python file contains the necessary function to convert annotated data in Brat format to BIO format.
+This python file contains the necessary code to convert annotated data in Brat format to BIO format.
 
 The files need to be in a specific structure. The directory dataset must contain at least one set (train, dev, test).
 Each set directory must contain two main directories:
