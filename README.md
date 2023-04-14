@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [Usage](#usage)
+- [Requirements](#requirements)
 
 This python file contains the necessary code to convert annotated data in Brat format to BIO format.
 
