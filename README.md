@@ -68,17 +68,17 @@ tqdm==4.64.1
     -an <annotations-dir-name> -hd <list-of-columns> -sn <output-dir> \
     -n <number-of-process>
 
-    Example:
+Example:
 
-    - Dataset: "/home/carlos/datasets/cantemist"
-        - Train: "train-set"
-        - Evaluation: "dev-set"
-        - Test: "test-set"
-    - Text files: "text-files"
-    - Annotations: "cantemist-ner"
-    - Header: "filename,mark,label,off0,off1,span"
-    - Output file: "processed_data",
-    - Number of processes: "8"
+- Dataset: "/home/carlos/datasets/cantemist"
+    - Train: "train-set"
+    - Evaluation: "dev-set"
+    - Test: "test-set"
+- Text files: "text-files"
+- Annotations: "cantemist-ner"
+- Header: "filename,mark,label,off0,off1,span"
+- Output file: "processed_data",
+- Number of processes: "8"
 
     python preprocess.py /home/carlos/datasets/cantemist -tr train-set \
     -de dev-set -te test-set -txt text-files -an cantemist-ner \
