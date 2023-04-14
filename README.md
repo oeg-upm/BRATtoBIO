@@ -63,6 +63,23 @@ tqdm==4.64.1
 
 # Usage
 
+    python preprocess.py <path-to-dataset> -tr <train-set-dir-name> \
+    -de <dev-set-dir-name> -te <test-set-dir-name> -txt <text-files-dir-name> \
+    -an <annotations-dir-name> -hd <list-of-columns> -sn <output-dir> \
+    -n <number-of-process>
+
+    Example:
+
+    - Dataset: "/home/carlos/datasets/cantemist"
+        - Train: "train-set"
+        - Evaluation: "dev-set"
+        - Test: "test-set"
+    - Text files: "text-files"
+    - Annotations: "cantemist-ner"
+    - Header: "filename,mark,label,off0,off1,span"
+    - Output file: "processed_data",
+    - Number of processes: "8"
+
     python preprocess.py /home/carlos/datasets/cantemist -tr train-set \
     -de dev-set -te test-set -txt text-files -an cantemist-ner \
     -hd filename,mark,label,off0,off1,span -sn processed_data -n 8
