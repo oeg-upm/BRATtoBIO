@@ -80,6 +80,8 @@ Example:
 - Output file: "processed_data",
 - Number of processes: "8"
 
+Example command:
+
     python preprocess.py /home/carlos/datasets/cantemist -tr train-set \
     -de dev-set -te test-set -txt text-files -an cantemist-ner \
     -hd filename,mark,label,off0,off1,span -sn processed_data -n 8
