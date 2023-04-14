@@ -50,6 +50,16 @@ Example of dataset organization:
 Each set has a directory 'text-files' with the raw data and a directory 'cantemist-ner' where the annotated data is
 located
 
+# Requirements
+
+The requirements are already in the requirements.txt file. These are:
+
+pandas==1.5.3
+
+pysbd==0.3.4
+
+tqdm==4.64.1
+
 # Usage
 
     python preprocess.py /home/carlos/datasets/cantemist -tr train-set \
