@@ -68,7 +68,7 @@ tqdm==4.64.1
     -an <annotations-dir-name> -hd <list-of-columns> -sn <output-dir> \
     -n <number-of-process>
 
-Example from the tree in above:
+Example from the dataset tree in above:
 
 - Dataset: "/home/carlos/datasets/cantemist"
     - Train: "train-set"
