@@ -9,12 +9,11 @@ This python file contains the necessary code to convert annotated data in Brat f
 
 The files must be in a specific structure. The directory dataset must contain at least one set (train, dev, test).
 Each set directory must contain two main directories:
-    1. First one with the text files (raw data)
-    2. Second one with the file with the annotation. Only one file with all the annotations. The structure of this file
-       is as follows (each column is sep by a tab):
+1. First one with the text files (raw data)
+2. Second one with the file with the annotation. Only one file with all the annotations. The structure of this file
+       is as follows (each column is sep by a tab, so the pandas.DataFrame is readed as a tsv):
 
             filename    mark  label    off0    off1    span
-            ----------------------------------------------------------
             f1_example  T1	  HUMAN    112     118	  hombre
             f1_example  T2	  HUMAN    1025    1033	  paciente
             f2_example  T1	  HUMAN    112     118	  mujer
