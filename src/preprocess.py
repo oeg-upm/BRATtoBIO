@@ -390,20 +390,20 @@ def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labe
 
 
 if __name__ == "__main__":
-    debbug = True
+    debbug = False
 
     if debbug:
         header_ = "filename,mark,label,off0,off1,span".split(',')
         ann_labels_ = [header_[0], header_[2], header_[3], header_[4], header_[5]]
-        df_tsv = read_tsv("/home/carlos/datasets/softcite/train-set/softcite-ner/ner_annotations.tsv",
+        df_tsv = read_tsv("",
                           ann_labels_,
                           header_).reset_index(drop=True)
 
-        process_file("/home/carlos/datasets/softcite/train-set/text-files/",
+        process_file("",
                      df_tsv,
-                     "/home/carlos/datasets/softcite/train-set/processed_data/",
+                     "",
                      ann_labels_,
-                     ["PMC5144680"])
+                     [""])
 
         exit(0)
 
