@@ -44,9 +44,10 @@ Each set has a directory 'text-files' with the raw data and a directory 'cantemi
 located
 
 """
-
 import os
+import ast
 import argparse
+
 import pysbd
 import utils
 import multiprocessing
@@ -54,6 +55,7 @@ import pandas as pd
 
 from tqdm import tqdm
 from os import listdir
+from random import randint
 from os.path import isfile, join
 
 
@@ -109,7 +111,7 @@ def read_tsv(file, ann_labels, header):
     return df
 
 
-def process_text(text, df_ann, ann_labels):
+def process_text(text, df_ann, ann_labels, db_knowledge=None):
     """
     Process the input text to generate a dataset for the NER task.
     The text is divided into sentences. Each word has a label attached following the BIO annotation format.
@@ -123,6 +125,10 @@ def process_text(text, df_ann, ann_labels):
     |labels
     |------------------------------------------------------------------------------------------------
     |['O', 'O', 'O', 'O', 'O', 'O', 'O', 'B-MORFOLOGIA_NEOPLASIA', 'O']
+    |
+    |knowledge
+    |------------------------------------------------------------------------------------------------
+    |['Un pacienta es un humano', 'La hepatitis es un virus', ...]
 
     Parameters
     ----------
@@ -137,6 +143,8 @@ def process_text(text, df_ann, ann_labels):
             ann_labels[2] --> label for the column 'label' (E.g: 'label', ...)
             ann_labels[3] --> labelled word (E.g: 'word', 'span', ...)
             example       --> ['off0', 'off1', 'label', 'span']
+    db_knowledge : pandas.DataFrame
+        Database with the knowledge used to enrich the dataset
 
     Returns
     -------
@@ -144,7 +152,8 @@ def process_text(text, df_ann, ann_labels):
         pandas.dataFrame with the text processed and labelled
     """
 
-    columns = ['tokens', 'labels']
+    add_know = type(db_knowledge) == pd.DataFrame
+    columns = ['tokens', 'labels', 'knowledge'] if add_know else ['tokens', 'labels']
     df = pd.DataFrame(columns=columns)
     # ann = df_ann.sort_values(by=[ann_labels[0]]).reset_index(drop=True)
     offset = 0
@@ -156,8 +165,8 @@ def process_text(text, df_ann, ann_labels):
     # Goes throw all the annotated word in the ann dataframe
     for index, row in df_ann.iterrows():
         label = row[ann_labels[1]]
-        off1 = int(row[ann_labels[2]])
-        off2 = int(row[ann_labels[3]])
+        off1 = row[ann_labels[2]]
+        off2 = row[ann_labels[3]]
         span = row[ann_labels[4]]
 
         # Check if the word is in the correct offset
@@ -198,6 +207,7 @@ def process_text(text, df_ann, ann_labels):
     sentences = seg.segment(text)
     all_tokens = []
     all_labels = []
+    all_knowledge = []
 
     for sentence in sentences:
         new_sentence = sentence.split()
@@ -231,8 +241,29 @@ def process_text(text, df_ann, ann_labels):
         all_tokens.append(tokens)
         all_labels.append(labels)
 
+        # Add knowledge if provided
+        if add_know:
+            sentence_knowledge = []
+            for token in tokens:
+                if token.lower() in list(db_knowledge['span']):
+                    knowledge = \
+                    list(db_knowledge.loc[db_knowledge['span'] == token.lower()]['knowledge'].apply(ast.literal_eval))[
+                        0]
+                    knowledge = list(map(lambda x: x.replace('\n', ''), knowledge))
+                    sentence_knowledge += knowledge
+            while len(sentence_knowledge) < 10:
+                index = randint(0, len(db_knowledge) - 1)
+                knowledge = list(db_knowledge.iloc[[index]]['knowledge'].apply(ast.literal_eval))[0]
+                knowledge = list(map(lambda x: x.replace('\n', ''), knowledge))
+                sentence_knowledge += knowledge
+            if len(sentence_knowledge) > 10:
+                sentence_knowledge = sentence_knowledge[:10]
+            all_knowledge.append(sentence_knowledge)
+
     df['tokens'] = all_tokens
     df['labels'] = all_labels
+    if add_know:
+        df['knowledge'] = all_knowledge
 
     for i in range(df.shape[0]):
         if len(df['tokens'][0]) != len(df['labels'][0]):
@@ -241,7 +272,7 @@ def process_text(text, df_ann, ann_labels):
     return df
 
 
-def process_file(path_txt, df_tsv, path_save, ann_labels, txt_tasks):
+def process_file(path_txt, df_tsv, path_save, ann_labels, txt_tasks, db_knowledge=None):
     """
     Main function to process all files.
 
@@ -264,6 +295,9 @@ def process_file(path_txt, df_tsv, path_save, ann_labels, txt_tasks):
     ann_labels : List[str]
         annotation labels for process_text()
     txt_tasks : List[str]
+        ...
+    db_knowledge : pandas.DataFrame, optional
+        ...
     """
 
     global cont
@@ -279,7 +313,7 @@ def process_file(path_txt, df_tsv, path_save, ann_labels, txt_tasks):
         file = f"{txt}.txt"
         text = utils.read_txt(path_txt + file)
 
-        df = process_text(text, df_aux, ann_labels)
+        df = process_text(text, df_aux, ann_labels, db_knowledge)
 
         file = file[:-4] if file[-4:] == ".txt" else file
         utils.write_csv(path_save + file + '.csv', df)
@@ -311,7 +345,8 @@ def init_pool_processes(cont_):
     cont = cont_
 
 
-def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labels, header, numthreads=os.cpu_count()):
+def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labels, header, numthreads=os.cpu_count(),
+                          path_knowledge=None):
     """
     Manage a thread pool to parallel execution of process_file().
 
@@ -328,12 +363,27 @@ def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labe
         path to train, dev and test save directories
     ann_labels : list[str]
         annotation labels for process_text()
+    header: list[str]
+        header of the DataFrame
     numthreads : int, optional
         number of threads to launch. Deafult = os.cpu_count()
+    path_knowledge : str, optional
+        ...
     """
 
     print('-' * (len(txt_path_types[0]) + 35))
     print(f"Processing dataset")
+
+    # Read knowledge
+    if path_knowledge is not None:
+        db_knowledge = pd.read_csv(path_knowledge, sep="\t")
+        try:
+            db_knowledge.pop('Unnamed: 0')
+        except KeyError:
+            pass
+    else:
+        db_knowledge = None
+
     cont_ = multiprocessing.Value('i', 1)
     with multiprocessing.Pool(initializer=init_pool_processes, initargs=(cont_,), processes=numthreads) as pool:
         for path_txt, path_tsv, path_save in zip(txt_path_types, tsv_path_types, save_path_df):
@@ -356,7 +406,12 @@ def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labe
                 txt_task = txt_files[task[0]:task[1]]
                 # res = pool.apply_async(process_file, (path_txt, df_tsv, path_save, ann_labels, txt_task,),
                 #                        error_callback=handler)
-                res.append(pool.apply_async(process_file, (path_txt, df_tsv, path_save, ann_labels, txt_task,),
+                res.append(pool.apply_async(process_file, (path_txt,
+                                                           df_tsv,
+                                                           path_save,
+                                                           ann_labels,
+                                                           txt_task,
+                                                           db_knowledge,),
                                             error_callback=handler))
 
             # While loop to update the tqdm bar. The shared value cont_ is updated by each thread when a text if
@@ -388,21 +443,32 @@ def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labe
 
 
 if __name__ == "__main__":
-    debbug = False
+    debbug = True
 
     if debbug:
         header_ = "filename,mark,label,off0,off1,span".split(',')
         ann_labels_ = [header_[0], header_[2], header_[3], header_[4], header_[5]]
-        df_tsv = read_tsv("",
-                          ann_labels_,
-                          header_).reset_index(drop=True)
+        _df_tsv = read_tsv("/home/carlos/datasets/LivingNER_old/training/subtask1-NER/training_entities_subtask1.tsv",
+                           ann_labels_,
+                           header_).reset_index(drop=True)
+        _path_knowledge = '/home/carlos/datasets/knowledge/knowledge_triplets.json'
 
-        process_file("",
-                     df_tsv,
-                     "",
+        # Read knowledge
+        if _path_knowledge is not None:
+            _db_knowledge = pd.read_csv(_path_knowledge, sep="\t")
+            try:
+                _db_knowledge.pop('Unnamed: 0')
+            except KeyError:
+                pass
+        else:
+            _db_knowledge = None
+
+        process_file("/home/carlos/datasets/LivingNER_old/training/text-files/",
+                     _df_tsv,
+                     "/home/carlos/datasets/LivingNER_old/training/PRUEBAS/",
                      ann_labels_,
-                     [""])
-
+                     ["caso_clinico_neurologia78"],
+                     _db_knowledge,)
         exit(0)
 
     parser = argparse.ArgumentParser(
