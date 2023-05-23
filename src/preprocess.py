@@ -69,7 +69,6 @@ def read_tsv(file, ann_labels, header):
     Example:
 
     filename    id  label   off0    off1    span
-    ----------------------------------------------------------
     fl_example  T1	HUMAN   112     118	    hombre
     fl_example  T2	HUMAN   1025    1033	paciente
 
@@ -95,10 +94,10 @@ def read_tsv(file, ann_labels, header):
         if col not in ann_labels:
             df.drop(col, axis=1, inplace=True)
 
-    # Convert offsets to int
+    # Convert offsets to numeric (conversion to int is later)
     # df['off0'] = pd.to_numeric(df['off0'], errors="coerce")
     # df['off1'] = pd.to_numeric(df['off1'], errors="coerce")
-    # Convert offsets to int
+    # Convert offsets to numeric (conversion to int is later)
     df[ann_labels[2]] = pd.to_numeric(df[ann_labels[2]], errors="coerce")
     df[ann_labels[3]] = pd.to_numeric(df[ann_labels[3]], errors="coerce")
 
@@ -191,6 +190,9 @@ def process_text(text, df_ann, ann_labels):
                 # If there is only in word in the span, only it is needed to add the str_char
                 text = text[:off2 + offset] + str_char + label + '$' + text[off2 + offset:]
                 offset += len_char + len(label) + 1
+        else:
+            print(f"{utils.Bcolors.WARNING}WARNING: An span offset do not correspond its position on text --> "
+                  f"Filename: {row['filename']}, Span: {span}, off0: {off1}, off1: {off2}{utils.Bcolors.ENDC}")
 
     # Once the labelled word are marked, the text can be divided in sentences and assing labels to every word of the
     # sentences.
@@ -388,20 +390,20 @@ def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labe
 
 
 if __name__ == "__main__":
-    debbug = False
+    debbug = True
 
     if debbug:
         header_ = "filename,mark,label,off0,off1,span".split(',')
         ann_labels_ = [header_[0], header_[2], header_[3], header_[4], header_[5]]
-        df_tsv = read_tsv("",
+        df_tsv = read_tsv("/home/carlos/datasets/softcite/train-set/softcite-ner/ner_annotations.tsv",
                           ann_labels_,
                           header_).reset_index(drop=True)
 
-        process_file("",
+        process_file("/home/carlos/datasets/softcite/train-set/text-files/",
                      df_tsv,
-                     "",
+                     "/home/carlos/datasets/softcite/train-set/processed_data/",
                      ann_labels_,
-                     [""])
+                     ["PMC5144680"])
 
         exit(0)
 
