@@ -47,6 +47,8 @@ located
 
 import os
 import argparse
+import warnings
+
 import pysbd
 import utils
 import multiprocessing
@@ -191,6 +193,7 @@ def process_text(text, df_ann, ann_labels):
                 text = text[:off2 + offset] + str_char + label + '$' + text[off2 + offset:]
                 offset += len_char + len(label) + 1
         else:
+            # warnings.warn(f"An span offset do not correspond its position on text -->Filename: {row['filename']}, Span: {span}, off0: {off1}, off1: {off2}", Warning)
             print(f"{utils.Bcolors.WARNING}WARNING: An span offset do not correspond its position on text --> "
                   f"Filename: {row['filename']}, Span: {span}, off0: {off1}, off1: {off2}{utils.Bcolors.ENDC}")
 
