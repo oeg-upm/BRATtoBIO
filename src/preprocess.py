@@ -193,9 +193,11 @@ def process_text(text, df_ann, ann_labels):
                 text = text[:off2 + offset] + str_char + label + '$' + text[off2 + offset:]
                 offset += len_char + len(label) + 1
         else:
-            # warnings.warn(f"An span offset do not correspond its position on text -->Filename: {row['filename']}, Span: {span}, off0: {off1}, off1: {off2}", Warning)
-            print(f"{utils.Bcolors.WARNING}WARNING: An span offset do not correspond its position on text --> "
-                  f"Filename: {row['filename']}, Span: {span}, off0: {off1}, off1: {off2}{utils.Bcolors.ENDC}")
+            verboseprint(f"{utils.Bcolors.WARNING}OFFSET WARNING: An span offset do not correspond its position on text "
+                         f"--> Filename: {row['filename']}, Span: {span}, off0: {off1}, off1: {off2}"
+                         f"{utils.Bcolors.ENDC}")
+            # warnings.warn(f"An span offset do not correspond its position on text -->Filename: {row['filename']},
+            # Span: {span}, off0: {off1}, off1: {off2}", Warning)
 
     # Once the labelled word are marked, the text can be divided in sentences and assing labels to every word of the
     # sentences.
@@ -446,8 +448,13 @@ if __name__ == "__main__":
                              'Default is "text-files".')
     parser.add_argument('-n', '--num_threads', type=int, default=os.cpu_count(),
                         help='Number of threads generated to process the data. Default is os.cpu_count()')
+    parser.add_argument('--ignore_offset_warn', action='store_true',
+                        help='Ignore the warning about mismatch between the offset of the annotation files and the'
+                             'real offset of the text files.')
 
     args = parser.parse_args()
+
+    verboseprint = print if not args.ignore_offset_warn else lambda *a, **k: None
 
     path_ = args.path + '/' if args.path[-1] != '/' else args.path
 
