@@ -47,8 +47,6 @@ located
 
 import os
 import argparse
-import warnings
-
 import pysbd
 import utils
 import multiprocessing
@@ -193,9 +191,10 @@ def process_text(text, df_ann, ann_labels):
                 text = text[:off2 + offset] + str_char + label + '$' + text[off2 + offset:]
                 offset += len_char + len(label) + 1
         else:
-            verboseprint(f"{utils.Bcolors.WARNING}OFFSET WARNING: An span offset do not correspond its position on text "
-                         f"--> Filename: {row['filename']}, Span: {span}, off0: {off1}, off1: {off2}"
-                         f"{utils.Bcolors.ENDC}")
+            verboseprint(
+                f"{utils.Bcolors.WARNING}OFFSET WARNING: An span offset do not correspond its position on text "
+                f"--> Filename: {row['filename']}, Span: {span}, off0: {off1}, off1: {off2}"
+                f"{utils.Bcolors.ENDC}")
             # warnings.warn(f"An span offset do not correspond its position on text -->Filename: {row['filename']},
             # Span: {span}, off0: {off1}, off1: {off2}", Warning)
 
@@ -303,7 +302,7 @@ def distribute_tasks(num_tasks):
     return tasks
 
 
-# error callback function
+# error callback function for multiprocessing.Pool.apply_async()
 def handler(error):
     print(f'{utils.Bcolors.FAIL}Error: {error}{utils.Bcolors.ENDC}', flush=True)
     exit(1)
@@ -400,12 +399,12 @@ if __name__ == "__main__":
     if debbug:
         header_ = "filename,mark,label,off0,off1,span".split(',')
         ann_labels_ = [header_[0], header_[2], header_[3], header_[4], header_[5]]
-        df_tsv = read_tsv("",
-                          ann_labels_,
-                          header_).reset_index(drop=True)
+        df_tsv_ = read_tsv("",
+                           ann_labels_,
+                           header_).reset_index(drop=True)
 
         process_file("",
-                     df_tsv,
+                     df_tsv_,
                      "",
                      ann_labels_,
                      [""])

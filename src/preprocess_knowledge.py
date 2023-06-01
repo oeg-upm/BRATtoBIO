@@ -49,7 +49,7 @@ import ast
 import argparse
 
 import pysbd
-import utils
+from src.utils import utils
 import multiprocessing
 import pandas as pd
 
