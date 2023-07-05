@@ -1,8 +1,6 @@
-from .utils import (
+from .util import (
     Bcolors,
     write_csv,
     read_txt,
     mkdirs
 )
-
-from utils import *

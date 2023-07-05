@@ -166,7 +166,7 @@ def process_text(text, df_ann, ann_labels):
             if len(spans) >= 2:
                 # Enter the if when the span has two or more words
 
-                # To identity the labelled spans in the text it is added a mark with the string str_char (for the
+                # To identity the labelled spans in the text, it is added a mark with the string str_char (for the
                 # beggining word) and itr_char (for the rest of words).
                 # For each labelled word in the span, the special string and the label are added following the words
                 # as follows. For the sentence 'The Eiffel Tower is un Paris' where 'Eiffel Tower' is labelled a PLACE,
@@ -217,16 +217,16 @@ def process_text(text, df_ann, ann_labels):
             if "$STR$" in token:
                 split_token = token.split("$STR$")
                 # Sometimes the word has a parenthesis
-                if '(' in split_token:
-                    split_token = split_token.split('(')[1]
+                if '(' in split_token[0]:
+                    split_token[0] = split_token[0].split('(')[1]
                     tokens.append('(')
                     labels.append('O')
                 tokens.append(split_token[0])
                 labels.append('B-' + split_token[1].split('$')[0])
             elif "$ITR$" in token:
                 split_token = token.split("$ITR$")
-                if '(' in split_token:
-                    split_token = split_token.split('(')[1]
+                if '(' in split_token[0]:
+                    split_token[0] = split_token[0].split('(')[1]
                     tokens.append('(')
                     labels.append('O')
                 tokens.append(split_token[0])
@@ -252,7 +252,7 @@ def process_file(path_txt, df_tsv, path_save, ann_labels, txt_tasks):
     Main function to process all files.
 
     This function depends on the organization of the files, and it may be modified.
-    In this case the files are organized as follows:
+    In this case, the files are organized as follows:
         unique_label_file.tsv
 
         text_file1.txt
@@ -271,7 +271,6 @@ def process_file(path_txt, df_tsv, path_save, ann_labels, txt_tasks):
         annotation labels for process_text()
     txt_tasks : List[str]
     """
-
     global cont
 
     thread_id = multiprocessing.current_process().name
@@ -397,17 +396,20 @@ if __name__ == "__main__":
     debbug = False
 
     if debbug:
+        ann_ = "/home/carlos/datasets/LivingNER/training/subtask1-NER/training_entities_subtask1.tsv"
+        path_ = "/home/carlos/datasets/LivingNER/training/text-files/"
+        file_ = "cc_odontologia20"
         header_ = "filename,mark,label,off0,off1,span".split(',')
         ann_labels_ = [header_[0], header_[2], header_[3], header_[4], header_[5]]
-        df_tsv_ = read_tsv("",
+        df_tsv_ = read_tsv(ann_,
                            ann_labels_,
                            header_).reset_index(drop=True)
 
-        process_file("",
+        process_file(path_,
                      df_tsv_,
                      "",
                      ann_labels_,
-                     [""])
+                     [file_])
 
         exit(0)
 
