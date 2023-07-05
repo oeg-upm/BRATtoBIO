@@ -130,7 +130,7 @@ def process_text(text, df_ann, ann_labels):
     df_ann : pandas.DataFrame
         pandas.DataFrame with info about the spans (span, offset, word)
     ann_labels : list[str]
-       list of lenght four with the labels of the ann file. Format must be:
+       list of length four with the labels of the ann file. Format must be:
             ann_labels[0] --> offset init label (E.g: 'start', 'off0', ...)
             ann_labels[1] --> offset final label (E.g: 'end', 'off1', ...)
             ann_labels[2] --> label for the column 'label' (E.g: 'label', ...)
@@ -145,8 +145,11 @@ def process_text(text, df_ann, ann_labels):
 
     columns = ['tokens', 'labels']
     df = pd.DataFrame(columns=columns)
-    # ann = df_ann.sort_values(by=[ann_labels[0]]).reset_index(drop=True)
     offset = 0
+
+    # All chars must be the same length
+    ini_char = "$INI$"
+    end_char = "$END$"
     str_char = "$STR$"
     itr_char = "$ITR$"
     len_char = len(str_char)
@@ -161,7 +164,7 @@ def process_text(text, df_ann, ann_labels):
 
         # Check if the word is in the correct offset
         if text[off1 + offset:off2 + offset] == span:
-            # Divid the span in words for cases as 'Torre Eiffel', labelled as place
+            # Divide the span in words for cases as 'Torre Eiffel', labelled as place
             spans = span.split()
             if len(spans) >= 2:
                 # Enter the if when the span has two or more words
@@ -169,34 +172,39 @@ def process_text(text, df_ann, ann_labels):
                 # To identity the labelled spans in the text, it is added a mark with the string str_char (for the
                 # beggining word) and itr_char (for the rest of words).
                 # For each labelled word in the span, the special string and the label are added following the words
-                # as follows. For the sentence 'The Eiffel Tower is un Paris' where 'Eiffel Tower' is labelled a PLACE,
-                # the result is 'The Eiffel$STR$PLACE$ Tower$ITR$PLACE$ is un Paris'.
+                # as follows.
+                # For the sentence 'The Eiffel Tower is in Paris' where 'Eiffel Tower' is labelled a PLACE,
+                # the result is 'The $INI$Eiffel$STR$PLACE$END$ $INI$Tower$ITR$PLACE$END$ is in Paris'.
+                # The $INI$ and $END$ special characters are to prevent adding non relevant characters to the entity as
+                # parentheses or dots.
+                # For example: the entity '(dog' result on '($INI$dog$STR$SPECIE$END'.
+                # The entity
+                # can be found because it is between the special initial and end characters.
 
                 # For the first word it is used the str_char
                 off_aux = off1
                 off_aux += len(spans[0])
-                text = text[:offset + off_aux] + str_char + label + '$' + text[off_aux + offset:]
-                off_aux += 1  # +1 bc of blank space
-                offset += len_char + len(label) + 1
+                text = text[:offset + off1] + ini_char + spans[0] + str_char + label + end_char + text[off_aux + offset:]
+                off_aux += 1  # +1 bc of blank space between spans
+                offset += len_char * 3 + len(label)   # * 3 bc ini_char, str_char, end_char
 
                 # For every word except the first one
                 for i in range(1, len(spans)):
                     # For the rest of the words it is used the itr_char
+                    text = text[:offset + off_aux] + ini_char + spans[i] + itr_char + label + end_char + text[off_aux + offset + len(spans[i]):]
                     off_aux += len(spans[i])
-                    text = text[:off_aux + offset] + itr_char + label + '$' + text[off_aux + offset:]
                     off_aux += 1  # +1 bc of blank space
-                    offset += len_char + len(label) + 1
+                    offset += len_char * 3 + len(label)  # * 3 bc ini_char, str_char, end_char
             else:
                 # If there is only in word in the span, only it is needed to add the str_char
-                text = text[:off2 + offset] + str_char + label + '$' + text[off2 + offset:]
-                offset += len_char + len(label) + 1
+                text = text[:offset + off1] + ini_char + spans[0] + str_char + label + end_char + text[off2 + offset:]
+                offset += len_char * 3 + len(label)  # * 3 bc ini_char, str_char, end_char
         else:
-            verboseprint(
-                f"{utils.Bcolors.WARNING}OFFSET WARNING: An span offset do not correspond its position on text "
-                f"--> Filename: {row['filename']}, Span: {span}, off0: {off1}, off1: {off2}"
-                f"{utils.Bcolors.ENDC}")
-            # warnings.warn(f"An span offset do not correspond its position on text -->Filename: {row['filename']},
-            # Span: {span}, off0: {off1}, off1: {off2}", Warning)
+            pass
+            # verboseprint(
+            #     f"{utils.Bcolors.WARNING}OFFSET WARNING: An span offset do not correspond its position on text "
+            #     f"--> Filename: {row['filename']}, Span: {span}, off0: {off1}, off1: {off2}"
+            #     f"{utils.Bcolors.ENDC}")
 
     # Once the labelled word are marked, the text can be divided in sentences and assing labels to every word of the
     # sentences.
@@ -206,31 +214,34 @@ def process_text(text, df_ann, ann_labels):
     all_labels = []
 
     for sentence in sentences:
-        new_sentence = sentence.split()
+        sentence = sentence.split()
         labels = []
         tokens = []
         special_chars = ['\ufeff']
-        for token in new_sentence:
+        for token in sentence:
             # Remove special characters as \ufeff
             for schar in special_chars:
                 token = token.replace(schar, '')
-            if "$STR$" in token:
-                split_token = token.split("$STR$")
-                # Sometimes the word has a parenthesis
-                if '(' in split_token[0]:
-                    split_token[0] = split_token[0].split('(')[1]
-                    tokens.append('(')
-                    labels.append('O')
-                tokens.append(split_token[0])
-                labels.append('B-' + split_token[1].split('$')[0])
-            elif "$ITR$" in token:
-                split_token = token.split("$ITR$")
-                if '(' in split_token[0]:
-                    split_token[0] = split_token[0].split('(')[1]
-                    tokens.append('(')
-                    labels.append('O')
-                tokens.append(split_token[0])
-                labels.append('I-' + split_token[1].split('$')[0])
+            if str_char in token:
+                split_token = utils.split_token(token)
+                for tok in split_token:
+                    if str_char in tok:
+                        s_tok = tok.split(str_char)
+                        tokens.append(s_tok[0])
+                        labels.append(f"B-{s_tok[1]}")
+                    else:
+                        tokens.append(tok)
+                        labels.append(f"O")
+            elif itr_char in token:
+                split_token = utils.split_token(token)
+                for tok in split_token:
+                    if itr_char in tok:
+                        s_tok = tok.split(itr_char)
+                        tokens.append(s_tok[0])
+                        labels.append(f"I-{s_tok[1]}")
+                    else:
+                        tokens.append(tok)
+                        labels.append(f"O")
             else:
                 tokens.append(token)
                 labels.append('O')
@@ -393,12 +404,12 @@ def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labe
 
 
 if __name__ == "__main__":
-    debbug = False
+    debbug = True
 
     if debbug:
         ann_ = "/home/carlos/datasets/LivingNER/training/subtask1-NER/training_entities_subtask1.tsv"
         path_ = "/home/carlos/datasets/LivingNER/training/text-files/"
-        file_ = "cc_odontologia20"
+        file_ = "32594151_ES"
         header_ = "filename,mark,label,off0,off1,span".split(',')
         ann_labels_ = [header_[0], header_[2], header_[3], header_[4], header_[5]]
         df_tsv_ = read_tsv(ann_,
