@@ -38,6 +38,72 @@ class Bcolors:
     UNDERLINE = '\033[4m'
 
 
+def correct_sentences(sentences: list[str]):
+    """
+    There are some scenarios where the sentence segmenter divices an entity into two sentences.
+    For example, in the text '
+
+        '[...]. Por la presencia de C. koseri en [...]', C. koseri is an entity.
+
+    After the first processing the text, the result is
+
+        '[...]. Por la presencia de $INI$C.$STR$SPECIE$END$ $INIkoseri$ITR$SPECIE$END$ en [...]'
+
+    The result after the segmentation of the text is two sentences:
+
+        Sentence 1: 'Por la presencia de $INI$C.'
+        Sentence 2: '$STR$SPECIE$END$ $INIkoseri$ITR$SPECIE$END$ en [...]'
+
+    To solve this problem, this function checks the first word of every sentence. If $END$ is present but $INI$ is not
+    present, it means that the entity has been divided. The solution is to concatenate this sentence to the previous.
+
+        Final sentence: ''Por la presencia de $INI$C.$STR$SPECIE$END$ $INIkoseri$ITR$SPECIE$END$ en [...]'
+
+    Parameters
+    ----------
+    sentences
+
+    Returns
+    -------
+
+    """
+    new_sentences = []
+    for sentence in sentences:
+        if "$INI$" not in sentence.split()[0] and "$END$" in sentence.split()[0]:
+            new_sentences[-1] += sentence
+        else:
+            new_sentences.append(sentence)
+    return new_sentences
+
+
+def split_token(token):
+    """
+
+    Parameters
+    ----------
+    token
+
+    Returns
+    -------
+
+    """
+    import re
+
+    # Definir los patrones de expresiones regulares para los casos
+    patterns = [
+        r'\$INI\$',  # Separador "$INIT$"
+        r'\$END\$',  # Separador "$END$"
+    ]
+
+    # Unir los patrones en una expresión regular
+    pattern = '|'.join(patterns)
+
+    # Dividir la cadena utilizando la expresión regular
+    tokens = re.split(pattern, token)
+
+    return [tok for tok in tokens if tok != '']
+
+
 def write_csv(path_file, df):
     """
     Write a pandas dataframe into a csv file
