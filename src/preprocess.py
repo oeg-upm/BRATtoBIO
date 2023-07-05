@@ -210,6 +210,7 @@ def process_text(text, df_ann, ann_labels):
     # sentences.
 
     sentences = seg.segment(text)
+    sentences = utils.correct_sentences(sentences)
     all_tokens = []
     all_labels = []
 
@@ -404,7 +405,7 @@ def process_data_parallel(txt_path_types, tsv_path_types, save_path_df, ann_labe
 
 
 if __name__ == "__main__":
-    debbug = True
+    debbug = False
 
     if debbug:
         ann_ = "/home/carlos/datasets/LivingNER/training/subtask1-NER/training_entities_subtask1.tsv"
