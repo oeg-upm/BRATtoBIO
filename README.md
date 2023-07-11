@@ -52,11 +52,11 @@ located
 
 # Requirements
 
-The requirements are already in the requirements.txt file. These are:
+The requirements are already in the requirements.txt file:
 
        pandas==2.0.3
        pysbd==0.3.4
-       qdm==4.65.0
+       tqdm==4.65.0
 
 
 # Usage
