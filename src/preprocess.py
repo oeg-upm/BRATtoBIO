@@ -200,11 +200,10 @@ def process_text(text, df_ann, ann_labels):
                 text = text[:offset + off1] + ini_char + spans[0] + str_char + label + end_char + text[off2 + offset:]
                 offset += len_char * 3 + len(label)  # * 3 bc ini_char, str_char, end_char
         else:
-            pass
-            # verboseprint(
-            #     f"{utils.Bcolors.WARNING}OFFSET WARNING: An span offset do not correspond its position on text "
-            #     f"--> Filename: {row['filename']}, Span: {span}, off0: {off1}, off1: {off2}"
-            #     f"{utils.Bcolors.ENDC}")
+            verboseprint(
+                f"{utils.Bcolors.WARNING}OFFSET WARNING: An span offset do not correspond its position on text "
+                f"--> Filename: {row['filename']}, Span: {span}, off0: {off1}, off1: {off2}"
+                f"{utils.Bcolors.ENDC}")
 
     # Once the labelled word are marked, the text can be divided in sentences and assing labels to every word of the
     # sentences.
