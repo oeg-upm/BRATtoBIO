@@ -19,7 +19,8 @@ Each set directory must contain two main directories:
             f2_example  T1	  HUMAN    112     118	  mujer
             f3_example  T1	  SPECIE   1025    1033	  coronavirus
 
-Example of dataset organization:
+Example of dataset organization for a dataset called 'cantemist', Each set has a directory 'text-files' with the raw data and a directory 'cantemist-ner' where the annotated data is
+located.
 
     /path/to/dataset
     └── cantemist
@@ -46,9 +47,6 @@ Example of dataset organization:
                 ├── text-file_1.txt
                 ├── text-file_2.txt
                 └── ...
-
-Each set has a directory 'text-files' with the raw data and a directory 'cantemist-ner' where the annotated data is
-located
 
 # Requirements
 
