@@ -54,9 +54,9 @@ located
 
 The requirements are already in the requirements.txt file. These are:
 
-       pandas==2.0.3
+       pandas==2.1.1
        pysbd==0.3.4
-       qdm==4.65.0
+       qdm==4.66.1
 
 
 # Usage
