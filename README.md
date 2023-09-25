@@ -52,9 +52,10 @@ located.
 
 The requirements are already in the requirements.txt file:
 
-       pandas==2.0.3
+       pandas==2.1.1
        pysbd==0.3.4
-       tqdm==4.65.0
+       tqdm==4.66.1
+
 
 
 # Usage
