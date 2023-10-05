@@ -503,7 +503,12 @@ if __name__ == "__main__":
 
     num_threads = args.num_threads
     header_ = args.header.split(',')
-    ann_labels_ = [header_[0], header_[2], header_[3], header_[4], header_[5]]
+    ann_labels_ref_ = ['filename', 'label', 'off0', 'off1', 'span']
+    ann_labels_ = []
+    for col_ in header_:
+        if col_ in ann_labels_ref_:
+            ann_labels_.append(col_)
+    # ann_labels_ = [header_[0], header_[2], header_[3], header_[4], header_[5]]
 
     if utils.mkdirs(save_path_df_):
         exit(1)
