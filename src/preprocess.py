@@ -161,52 +161,61 @@ def process_text(text, df_ann, ann_labels):
     # Goes throw all the annotated word in the ann dataframe
     for index, row in df_ann.iterrows():
         label = row[ann_labels[1]]
-        off1 = int(row[ann_labels[2]])
-        off2 = int(row[ann_labels[3]])
+        # Offset values could be different from integers if the text has not annotations
+        try:
+            off1 = int(row[ann_labels[2]])
+        except ValueError:
+            off1 = row[ann_labels[2]]
+        try:
+            off2 = int(row[ann_labels[3]])
+        except ValueError:
+            off2 = row[ann_labels[3]]
         span = row[ann_labels[4]]
 
-        # Check if the word is in the correct offset
-        if text[off1 + offset:off2 + offset] == span:
-            # Divide the span in words for cases as 'Torre Eiffel', labelled as place
-            spans = span.split()
-            if len(spans) >= 2:
-                # Enter the if when the span has two or more words
+        # If offsets are not integer, then the file has not annotations.
+        if type(off1) == int and type(off2) == int:
+            # Check if the word is in the correct offset
+            if text[off1 + offset:off2 + offset] == span:
+                # Divide the span in words for cases as 'Torre Eiffel', labelled as place
+                spans = span.split()
+                if len(spans) >= 2:
+                    # Enter the if when the span has two or more words
 
-                # To identity the labelled spans in the text, it is added a mark with the string str_char (for the
-                # beggining word) and itr_char (for the rest of words).
-                # For each labelled word in the span, the special string and the label are added following the words
-                # as follows.
-                # For the sentence 'The Eiffel Tower is in Paris' where 'Eiffel Tower' is labelled a PLACE,
-                # the result is 'The $INI$Eiffel$STR$PLACE$END$ $INI$Tower$ITR$PLACE$END$ is in Paris'.
-                # The $INI$ and $END$ special characters are to prevent adding non relevant characters to the entity as
-                # parentheses or dots.
-                # For example: the entity '(dog' result on '($INI$dog$STR$SPECIE$END'.
-                # The entity
-                # can be found because it is between the special initial and end characters.
+                    # To identity the labelled spans in the text, it is added a mark with the string str_char (for the
+                    # beggining word) and itr_char (for the rest of words).
+                    # For each labelled word in the span, the special string and the label are added following the words
+                    # as follows.
+                    # For the sentence 'The Eiffel Tower is in Paris' where 'Eiffel Tower' is labelled a PLACE,
+                    # the result is 'The $INI$Eiffel$STR$PLACE$END$ $INI$Tower$ITR$PLACE$END$ is in Paris'.
+                    # The $INI$ and $END$ special characters are to prevent adding non relevant characters to the entity as
+                    # parentheses or dots.
+                    # For example: the entity '(dog' result on '($INI$dog$STR$SPECIE$END'.
+                    # The entity
+                    # can be found because it is between the special initial and end characters.
 
-                # For the first word it is used the str_char
-                off_aux = off1
-                off_aux += len(spans[0])
-                text = text[:offset + off1] + ini_char + spans[0] + str_char + label + end_char + text[off_aux + offset:]
-                off_aux += 1  # +1 bc of blank space between spans
-                offset += len_char * 3 + len(label)   # * 3 bc ini_char, str_char, end_char
+                    # For the first word it is used the str_char
+                    off_aux = off1
+                    off_aux += len(spans[0])
+                    text = text[:offset + off1] + ini_char + spans[0] + str_char + label + end_char + text[off_aux + offset:]
+                    off_aux += 1  # +1 bc of blank space between spans
+                    offset += len_char * 3 + len(label)   # * 3 bc ini_char, str_char, end_char
 
-                # For every word except the first one
-                for i in range(1, len(spans)):
-                    # For the rest of the words it is used the itr_char
-                    text = text[:offset + off_aux] + ini_char + spans[i] + itr_char + label + end_char + text[off_aux + offset + len(spans[i]):]
-                    off_aux += len(spans[i])
-                    off_aux += 1  # +1 bc of blank space
+                    # For every word except the first one
+                    for i in range(1, len(spans)):
+                        # For the rest of the words it is used the itr_char
+                        text = text[:offset + off_aux] + ini_char + spans[i] + itr_char + label + end_char + text[off_aux + offset + len(spans[i]):]
+                        off_aux += len(spans[i])
+                        off_aux += 1  # +1 bc of blank space
+                        offset += len_char * 3 + len(label)  # * 3 bc ini_char, str_char, end_char
+                else:
+                    # If there is only in word in the span, only it is needed to add the str_char
+                    text = text[:offset + off1] + ini_char + spans[0] + str_char + label + end_char + text[off2 + offset:]
                     offset += len_char * 3 + len(label)  # * 3 bc ini_char, str_char, end_char
             else:
-                # If there is only in word in the span, only it is needed to add the str_char
-                text = text[:offset + off1] + ini_char + spans[0] + str_char + label + end_char + text[off2 + offset:]
-                offset += len_char * 3 + len(label)  # * 3 bc ini_char, str_char, end_char
-        else:
-            verboseprint(
-                f"{utils.Bcolors.WARNING}OFFSET WARNING: An span offset do not correspond its position on text "
-                f"--> Filename: {row['filename']}, Span: {span}, off0: {off1}, off1: {off2}"
-                f"{utils.Bcolors.ENDC}")
+                verboseprint(
+                    f"{utils.Bcolors.WARNING}OFFSET WARNING: An span offset do not correspond its position on text "
+                    f"--> Filename: {row['filename']}, Span: {span}, off0: {off1}, off1: {off2}"
+                    f"{utils.Bcolors.ENDC}")
 
     # Once the labelled word are marked, the text can be divided in sentences and assing labels to every word of the
     # sentences.
