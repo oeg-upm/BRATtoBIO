@@ -420,11 +420,15 @@ if __name__ == "__main__":
     debbug = False
 
     if debbug:
-        ann_ = "/home/carlos/datasets/LivingNER/training/subtask1-NER/training_entities_subtask1.tsv"
-        path_ = "/home/carlos/datasets/LivingNER/training/text-files/"
-        file_ = "32594151_ES"
-        header_ = "filename,mark,label,off0,off1,span".split(',')
-        ann_labels_ = [header_[0], header_[2], header_[3], header_[4], header_[5]]
+        # ann_ = "/home/carlos/datasets/LivingNER/training/subtask1-NER/training_entities_subtask1.tsv"   #LivingNER
+        ann_ = "/home/carlos/datasets/profner/ner/pruebas/train/annotations/train.tsv"   #ProfNER
+        # path_ = "/home/carlos/datasets/LivingNER/training/text-files/"  # LivingNER
+        path_ = "/home/carlos/datasets/profner/ner/train/text-files/"  # ProfNER
+        file_ = "1261352447500378113"
+        # header_ = "filename,mark,label,off0,off1,span".split(',')   # LivingNER
+        header_ = "filename,off0,off1,label,span".split(',')   # ProfNER
+        # ann_labels_ = [header_[0], header_[2], header_[3], header_[4], header_[5]]  # LivingNER
+        ann_labels_ = [header_[0], header_[1], header_[2], header_[3], header_[4]]  # ProfNER
         df_tsv_ = read_tsv(ann_,
                            ann_labels_,
                            header_).reset_index(drop=True)
